@@ -1,4 +1,4 @@
-import time
+import datetime
 import requests
 
 from selenium import webdriver
@@ -69,12 +69,42 @@ def find_calendar_container(soup: BeautifulSoup):
     return calendar_container
 
 
-def find_month_rows(container: Tag | NavigableString):
+def get_current_day() -> int:
+    current_date = datetime.datetime.now()
+    day_number = current_date.isoweekday()
+    return day_number
+
+def get_days_columns(container: Tag | NavigableString):
     days_columns = container.find_all(class_ = 'tg-col')
-    current_days_columns = container.find_all(class_ = 'tg-col-today')
-    total_columns = days_columns + current_days_columns
-    print(len(total_columns))
-    
+    current_day_column = container.find_all(class_ = 'tg-col-today')[0]
+    current_day = get_current_day()
+    current_day_position = current_day - 1
+    days_columns.insert(current_day_position, current_day_column)
+    return days_columns    
+
+
+def get_activities_from_day(day: Tag | NavigableString):
+    activities = day.find_all(class_ = 'chip-caption')
+    activities = [activity.text for activity in activities]
+    if len(activities) == 0:
+        print("\t No hubieron actividades")
+    for activity in activities:
+        print(f"\t -{activity}")
+
+
+def get_day_name(day_number: int) -> str:
+    days = {
+        1: "Lunes",
+        2: "Martes",
+        3: "Miercoles",
+        4: "Jueves",
+        5: "Viernes",
+        6: "Sábado",
+        7: "Domingo"
+    } 
+    return days[day_number]
+
+
 
 def main():
     url = 'https://www.gob.pe/institucion/presidencia/agenda'
@@ -83,7 +113,11 @@ def main():
     iframe_source = find_iframe_source(soup=soup)
     calendar_soup = create_soup_from_source(url=iframe_source)
     calendar_container = find_calendar_container(soup=calendar_soup)
-    find_month_rows(container=calendar_container)
+    days = get_days_columns(container=calendar_container)
+    for i, day in enumerate(days):
+        day_name = get_day_name(i + 1)
+        print(f"{day_name.upper()}: ")
+        get_activities_from_day(day=day)
 
 
 if __name__ == "__main__":
